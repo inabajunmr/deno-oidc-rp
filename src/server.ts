@@ -5,12 +5,11 @@ import {
   engineFactory,
   viewEngine,
 } from "https://deno.land/x/view_engine/mod.ts";
+import { TokenRequest, TokenResponse } from "./oidc/token-request.ts";
 import {
   AuthorizationRequestBuilder,
   ResponseType,
-  TokenRequest,
-  TokenResponse,
-} from "./oidc.ts";
+} from "./oidc/authorization-request.ts";
 import { config } from "https://deno.land/x/dotenv/mod.ts";
 
 const app = new Application();

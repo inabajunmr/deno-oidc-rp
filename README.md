@@ -1,7 +1,7 @@
 # oidcrpsample
 
 ```
-deno run --allow-net --allow-read server.ts
+deno run --allow-net --allow-read src/server.ts
 ```
 
 ```
