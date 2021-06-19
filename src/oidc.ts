@@ -94,7 +94,7 @@ export class IdToken {
     this.value = idToken;
   }
 
-  async validate(nonce:string) {
+  async validate(nonce: string) {
     const c = config();
     const jwks = await fetch(c.JWKS_ENDPOINT).then((response) => {
       return response.json();
@@ -102,7 +102,7 @@ export class IdToken {
 
     // signature
     const { header, payload } = validate(decode(this.value));
-    console.log(payload)
+    console.log(payload);
 
     if (header.alg === "none") {
       throw new Error("alg:none isn't allowed.");
@@ -128,8 +128,8 @@ export class IdToken {
       throw new Error("expired id token.");
     }
 
-    if(payload.nonce !== nonce) {
-      throw new Error("nonce unmatched."); 
+    if (payload.nonce !== nonce) {
+      throw new Error("nonce unmatched.");
     }
   }
 
