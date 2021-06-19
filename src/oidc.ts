@@ -94,7 +94,7 @@ export class IdToken {
     this.value = idToken;
   }
 
-  async validate() {
+  async validate(nonce:string) {
     const c = config();
     const jwks = await fetch(c.JWKS_ENDPOINT).then((response) => {
       return response.json();
@@ -102,6 +102,7 @@ export class IdToken {
 
     // signature
     const { header, payload } = validate(decode(this.value));
+    console.log(payload)
 
     if (header.alg === "none") {
       throw new Error("alg:none isn't allowed.");
@@ -124,11 +125,12 @@ export class IdToken {
     // TODO If the JWT alg Header Parameter uses a MAC based algorithm such as HS256, HS384, or HS512, the octets of the UTF-8 representation of the client_secret corresponding to the client_id contained in the aud (audience) Claim are used as the key to validate the signature. For MAC based algorithms, the behavior is unspecified if the aud is multi-valued or if an azp value is present that is different than the aud value.
 
     if (payload.exp === undefined || payload.exp > Date.now() * 1000) {
-      throw new Error("expired id token");
+      throw new Error("expired id token.");
     }
 
-    // TODO nonce
-
+    if(payload.nonce !== nonce) {
+      throw new Error("nonce unmatched."); 
+    }
   }
 
   getPayload() {
