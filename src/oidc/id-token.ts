@@ -29,27 +29,33 @@ export class IdToken {
 
     // 2. The Issuer Identifier for the OpenID Provider (which is typically obtained during Discovery) MUST exactly match the value of the iss (issuer) Claim.
     if (this.payload.iss !== discovery.issuer) {
+      console.log("unexpected issuer.")
       throw new Error("unexpected issuer.");
     }
 
     // 3. The Client MUST validate that the aud (audience) Claim contains its client_id value registered at the Issuer identified by the iss (issuer) Claim as an audience. The aud (audience) Claim MAY contain an array with more than one element. The ID Token MUST be rejected if the ID Token does not list the Client as a valid audience, or if it contains additional audiences not trusted by the Client.
-    if (this.payload.aud === null) {
+    if (this.payload.aud === undefined) {
+      console.log()
       throw Error("ID Token must have aud claim.");
     }
     if (typeof this.payload.aud === "string") {
       if (this.payload.aud !== config.clientId) {
+        console.log("aud must be client_id.")
         throw new Error("aud must be client_id.");
       }
     } else {
       if (!this.payload.aud?.includes(config.clientId)) {
+        console.log("aud must include client_id.")
         throw new Error("aud must include client_id.");
       }
       // 4. If the ID Token contains multiple audiences, the Client SHOULD verify that an azp Claim is present.
-      if (this.payload.azp === null) {
+      if (this.payload.azp === undefined) {
+        console.log("aud is array so azp is required.")
         throw new Error("aud is array so azp is required.");
       }
       // 5. If an azp (authorized party) Claim is present, the Client SHOULD verify that its client_id is the Claim Value.
       if (this.payload.azp !== config.clientId) {
+        console.log("azp must be client_id.")
         throw new Error("azp must be client_id.");
       }
     }
@@ -58,6 +64,7 @@ export class IdToken {
 
     // 7. The alg value SHOULD be the default of RS256 or the algorithm sent by the Client in the id_token_signed_response_alg parameter during Registration.
     if (this.header.alg !== config.idTokenSignedResponseAlg) {
+      console.log("alg must be " + config.idTokenSignedResponseAlg)
       throw new Error("alg must be " + config.idTokenSignedResponseAlg);
     }
 
@@ -71,6 +78,7 @@ export class IdToken {
     } else if (["HS256", "HS512"].includes(this.header.alg)) {
       await verify(this.value, config.clientSecret, this.header.alg);
     } else {
+      console.log(`${this.header.alg} is not supported.`)
       throw new Error(`${this.header.alg} is not supported.`);
     }
 
@@ -78,6 +86,7 @@ export class IdToken {
     if (
       this.payload.exp === undefined || this.payload.exp > Date.now() * 1000
     ) {
+      console.log("expired id token.")
       throw new Error("expired id token.");
     }
 
@@ -86,11 +95,13 @@ export class IdToken {
       this.payload.iat !== undefined &&
       this.payload.exp > Date.now() * 1000 + 3600
     ) {
-      throw new Error("expired id token.");
+      console.log("iat is too old.")
+      throw new Error("iat is too old.");
     }
 
     // 11. If a nonce value was sent in the Authentication Request, a nonce Claim MUST be present and its value checked to verify that it is the same value as the one that was sent in the Authentication Request. The Client SHOULD check the nonce value for replay attacks. The precise method for detecting replay attacks is Client specific.
     if (this.payload.nonce !== nonce) {
+      console.log("nonce unmatched.")
       throw new Error("nonce unmatched.");
     }
 
@@ -102,7 +113,8 @@ export class IdToken {
       typeof (this.payload.auth_time) === "number" &&
       this.payload.auth_time > Date.now() * 1000 + 3600
     ) {
-      throw new Error("expired id token.");
+      console.log("auth_time is too old.")
+      throw new Error("auth_time is too old.");
     }
   }
 

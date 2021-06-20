@@ -1,5 +1,4 @@
-import { Application, Router } from "https://deno.land/x/oak/mod.ts";
-import { getQuery } from "https://deno.land/x/oak/helpers.ts";
+import { Application } from "https://deno.land/x/oak/mod.ts";
 import {
   adapterFactory,
   engineFactory,
