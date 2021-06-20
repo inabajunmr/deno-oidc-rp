@@ -1,4 +1,6 @@
 import { config } from "../config.ts";
+import { discovery } from "./discovery.ts";
+
 import { IdToken } from "./id-token.ts";
 import * as base64 from "https://denopkg.com/chiefbiiko/base64/mod.ts";
 
@@ -21,7 +23,7 @@ export class TokenRequest {
         new TextEncoder().encode(config.clientId + ":" + config.clientSecret),
       );
 
-    const response = fetch(config.tokenEndpoint, {
+    const response = fetch(discovery.tokenEndpoint, {
       method: "POST",
       headers: {
         "Authorization": credentials,

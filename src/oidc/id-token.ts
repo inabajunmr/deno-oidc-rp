@@ -1,6 +1,7 @@
 import { decode, validate, verify } from "https://deno.land/x/djwt@v2.2/mod.ts";
 import { RSA } from "https://deno.land/x/god_crypto@v1.4.8/mod.ts";
 import { config } from "../config.ts";
+import { discovery } from "./discovery.ts";
 
 export class IdToken {
   value: string;
@@ -10,7 +11,7 @@ export class IdToken {
   }
 
   async validate(nonce: string) {
-    const jwks = await fetch(config.jwksEndpoint).then((response) => {
+    const jwks = await fetch(discovery.jwksUri).then((response) => {
       return response.json();
     });
 
@@ -25,7 +26,7 @@ export class IdToken {
     const jwk = this.findJWKByKeyId(Object(header).kid, jwks);
     await verify(this.value, RSA.importKey(jwk).pem(), header.alg);
 
-    if (payload.iss !== config.issuer) {
+    if (payload.iss !== discovery.issuer) {
       throw new Error("unexpected issuer.");
     }
 

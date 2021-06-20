@@ -5,7 +5,7 @@ import {
   engineFactory,
   viewEngine,
 } from "https://deno.land/x/view_engine/mod.ts";
-import {router} from "./rute.ts"
+import { router } from "./rute.ts";
 
 const app = new Application();
 
