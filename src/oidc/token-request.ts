@@ -1,4 +1,4 @@
-import { config } from "https://deno.land/x/dotenv/mod.ts";
+import { config } from "../config.ts";
 import { IdToken } from "./id-token.ts";
 import * as base64 from "https://denopkg.com/chiefbiiko/base64/mod.ts";
 
@@ -12,17 +12,16 @@ export class TokenRequest {
   }
 
   execute() {
-    const c = config();
     const params = new URLSearchParams([["grant_type", "authorization_code"], [
       "code",
       this.code,
     ], ["redirect_uri", this.redirectUti]]);
     const credentials = "Basic " +
       base64.fromUint8Array(
-        new TextEncoder().encode(c.CLIENT_ID + ":" + c.CLIENT_SECRET),
+        new TextEncoder().encode(config.clientId + ":" + config.clientSecret),
       );
 
-    const response = fetch(c.TOKEN_ENDPOINT, {
+    const response = fetch(config.tokenEndpoint, {
       method: "POST",
       headers: {
         "Authorization": credentials,

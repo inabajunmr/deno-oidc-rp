@@ -1,6 +1,6 @@
 import { decode, validate, verify } from "https://deno.land/x/djwt@v2.2/mod.ts";
 import { RSA } from "https://deno.land/x/god_crypto@v1.4.8/mod.ts";
-import { config } from "https://deno.land/x/dotenv/mod.ts";
+import { config } from "../config.ts";
 
 export class IdToken {
   value: string;
@@ -10,8 +10,7 @@ export class IdToken {
   }
 
   async validate(nonce: string) {
-    const c = config();
-    const jwks = await fetch(c.JWKS_ENDPOINT).then((response) => {
+    const jwks = await fetch(config.jwksEndpoint).then((response) => {
       return response.json();
     });
 
@@ -26,11 +25,11 @@ export class IdToken {
     const jwk = this.findJWKByKeyId(Object(header).kid, jwks);
     await verify(this.value, RSA.importKey(jwk).pem(), header.alg);
 
-    if (payload.iss !== c.ISSUER) {
+    if (payload.iss !== config.issuer) {
       throw new Error("unexpected issuer.");
     }
 
-    if (payload.aud !== c.CLIENT_ID) {
+    if (payload.aud !== config.clientId) {
       // TODO aud can be array
       throw new Error("aud must be client_id.");
     }

@@ -1,5 +1,5 @@
 import { getQuery } from "https://deno.land/x/oak/helpers.ts";
-import { TokenRequest, TokenResponse } from "./oidc/token-request.ts";
+import { TokenRequest, TokenResponse } from "../oidc/token-request.ts";
 export { callback };
 
 const callback = async (ctx: any) => {
