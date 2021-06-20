@@ -22,3 +22,9 @@ CLIENT_SECRET={CLIENT_SECRET_FROM_KEYCLOAK}
 ```
 deno run --allow-net --allow-read src/server.ts
 ```
+
+## Test
+
+```
+deno test --allow-read --allow-net
+```

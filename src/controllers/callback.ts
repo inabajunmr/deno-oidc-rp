@@ -28,7 +28,7 @@ const callback = async (ctx: any) => {
     ctx.cookies.delete("nonce");
 
     await tokenResponse.idToken.validate(nonce);
-    const payload = tokenResponse.idToken.getPayload();
+    const payload = tokenResponse.idToken.payload;
     ctx.render("./template/authenticated.ejs", { "sub": payload.sub });
   } catch (err) {
     console.error("Error:", err);
