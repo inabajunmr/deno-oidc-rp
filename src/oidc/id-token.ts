@@ -86,12 +86,7 @@ export class IdToken {
     }
   }
 
-  getPayload() {
-    const { payload } = validate(decode(this.value));
-    return payload;
-  }
-
-  findJWKByKeyId(kid: string, jwks: any) {
+  private findJWKByKeyId(kid: string, jwks: any) {
     return jwks.keys.find(
       function (x: string) {
         return Object(x).kid == kid;
