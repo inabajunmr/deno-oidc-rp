@@ -1,5 +1,8 @@
 import { getQuery } from "https://deno.land/x/oak/helpers.ts";
 import { TokenRequest, TokenResponse } from "../oidc/token-request.ts";
+import { UrlBasedJWKsProvider } from "../oidc/id-token.ts";
+import { discovery } from "../oidc/discovery.ts";
+
 export { callback };
 
 const callback = async (ctx: any) => {
@@ -23,11 +26,15 @@ const callback = async (ctx: any) => {
 
   try {
     console.log(jsonData);
+    console.dir(jsonData.id_token, { depth: null });
     const tokenResponse = new TokenResponse(jsonData);
     const nonce = ctx.cookies.get("nonce");
     ctx.cookies.delete("nonce");
 
-    await tokenResponse.idToken.validate(nonce);
+    await tokenResponse.idToken.validate(
+      nonce,
+      new UrlBasedJWKsProvider(discovery.jwksUri),
+    );
     const payload = tokenResponse.idToken.payload;
     ctx.render("./template/authenticated.ejs", { "sub": payload.sub });
   } catch (err) {
