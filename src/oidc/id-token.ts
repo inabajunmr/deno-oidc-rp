@@ -69,20 +69,23 @@ export class IdToken {
     }
 
     // 8. If the JWT alg Header Parameter uses a MAC based algorithm such as HS256, HS384, or HS512, the octets of the UTF-8 representation of the client_secret corresponding to the client_id contained in the aud (audience) Claim are used as the key to validate the signature. For MAC based algorithms, the behavior is unspecified if the aud is multi-valued or if an azp value is present that is different than the aud value.
-
-    if (["RS256", "RS512", "PS256", "PS512"].includes(this.header.alg)) {
-      const jwk = await jwksProvider.findJwk(Object(this.header).kid);
-      await verify(this.value, RSA.importKey(jwk).pem(), this.header.alg);
-    } else if (["HS256", "HS512"].includes(this.header.alg)) {
-      await verify(this.value, config.clientSecret, this.header.alg);
-    } else {
-      console.log(`${this.header.alg} is not supported.`);
-      throw new Error(`${this.header.alg} is not supported.`);
+    try {
+      if (["RS256", "RS512", "PS256", "PS512"].includes(this.header.alg)) {
+        const jwk = await jwksProvider.findJwk(Object(this.header).kid);
+        await verify(this.value, RSA.importKey(jwk).pem(), this.header.alg);
+      } else if (["HS256", "HS512"].includes(this.header.alg)) {
+        await verify(this.value, config.clientSecret, this.header.alg);
+      } else {
+        throw new Error(`${this.header.alg} is not supported.`);
+      }
+    } catch (err) {
+      console.log(err.message);
+      throw err;
     }
 
     // 9. The current time MUST be before the time represented by the exp Claim.
     if (
-      this.payload.exp === undefined || this.payload.exp > Date.now() * 1000
+      this.payload.exp === undefined || this.payload.exp < Date.now() / 1000
     ) {
       console.log("expired id token.");
       throw new Error("expired id token.");
@@ -91,7 +94,7 @@ export class IdToken {
     // 10. The iat Claim can be used to reject tokens that were issued too far away from the current time, limiting the amount of time that nonces need to be stored to prevent attacks. The acceptable range is Client specific.
     if (
       this.payload.iat !== undefined &&
-      this.payload.exp > Date.now() * 1000 + 3600
+      this.payload.iat < Date.now() / 1000 - 3600
     ) {
       console.log("iat is too old.");
       throw new Error("iat is too old.");
@@ -109,7 +112,7 @@ export class IdToken {
     if (
       this.payload.auth_time !== undefined &&
       typeof (this.payload.auth_time) === "number" &&
-      this.payload.auth_time > Date.now() * 1000 + 3600
+      this.payload.auth_time < Date.now() / 1000 - 3600
     ) {
       console.log("auth_time is too old.");
       throw new Error("auth_time is too old.");

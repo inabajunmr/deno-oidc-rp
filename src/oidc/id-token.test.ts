@@ -106,8 +106,6 @@ Deno.test("alg header unmatched", async () => {
 Deno.test("RS256 signature validation failed", async () => {
   await assertThrowsAsync(async () => {
     discovery.issuer = "aaa";
-    discovery.jwksUri =
-      "http://localhost:18080/auth/realms/master/protocol/openid-connect/certs";
     config.clientId = "xxx";
     config.idTokenSignedResponseAlg = "RS256";
     testJwks;
@@ -126,6 +124,294 @@ Deno.test("RS256 signature validation failed", async () => {
   }, Error);
 });
 
+Deno.test("HS256 signature validation failed", async () => {
+  await assertThrowsAsync(async () => {
+    discovery.issuer = "aaa";
+    config.clientId = "xxx";
+    config.clientSecret = "secret";
+    config.idTokenSignedResponseAlg = "HS256";
+    testJwks;
+
+    const jwt = await create(
+      {
+        alg: "HS256",
+        typ: "JWT",
+      },
+      { iss: "aaa", aud: ["xxx", "yyy"], azp: "xxx" },
+      "invalid",
+    );
+    const token = new IdToken(jwt);
+    await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+  }, Error);
+});
+
+Deno.test("expired", async () => {
+  await assertThrowsAsync(async () => {
+    discovery.issuer = "aaa";
+    config.clientId = "xxx";
+    config.idTokenSignedResponseAlg = "RS256";
+    testJwks;
+
+    const jwt = await create(
+      {
+        alg: "RS256",
+        typ: "JWT",
+        kid: testJwks.keys[0].kid,
+      },
+      { iss: "aaa", aud: ["xxx", "yyy"], azp: "xxx", exp: Date.now() / 1000 },
+      RSA.importKey(testJwks.keys[0]).pem(),
+    );
+    const token = new IdToken(jwt);
+    await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+  }, Error);
+});
+
+Deno.test("too old iat", async () => {
+  await assertThrowsAsync(async () => {
+    discovery.issuer = "aaa";
+    config.clientId = "xxx";
+    config.idTokenSignedResponseAlg = "RS256";
+    testJwks;
+
+    const jwt = await create(
+      {
+        alg: "RS256",
+        typ: "JWT",
+        kid: testJwks.keys[0].kid,
+      },
+      {
+        iss: "aaa",
+        aud: ["xxx", "yyy"],
+        azp: "xxx",
+        exp: Date.now() / 1000 + 5,
+        iat: Date.now() / 1000 - 3700,
+      },
+      RSA.importKey(testJwks.keys[0]).pem(),
+    );
+    const token = new IdToken(jwt);
+    await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+  }, Error);
+});
+
+Deno.test("nonce unmatched", async () => {
+  await assertThrowsAsync(async () => {
+    discovery.issuer = "aaa";
+    config.clientId = "xxx";
+    config.idTokenSignedResponseAlg = "RS256";
+    testJwks;
+
+    const jwt = await create(
+      {
+        alg: "RS256",
+        typ: "JWT",
+        kid: testJwks.keys[0].kid,
+      },
+      {
+        iss: "aaa",
+        aud: ["xxx", "yyy"],
+        azp: "xxx",
+        exp: Date.now() / 1000 + 5,
+        iat: Date.now() / 1000 - 3500,
+        nonce: "nonce",
+      },
+      RSA.importKey(testJwks.keys[0]).pem(),
+    );
+    const token = new IdToken(jwt);
+    await token.validate("invalid", new ValueBasedJWKsProvider(testJwks));
+  }, Error);
+});
+
+Deno.test("too old auth_time", async () => {
+  await assertThrowsAsync(async () => {
+    discovery.issuer = "aaa";
+    config.clientId = "xxx";
+    config.idTokenSignedResponseAlg = "RS256";
+    testJwks;
+
+    const jwt = await create(
+      {
+        alg: "RS256",
+        typ: "JWT",
+        kid: testJwks.keys[0].kid,
+      },
+      {
+        iss: "aaa",
+        aud: ["xxx", "yyy"],
+        azp: "xxx",
+        exp: Date.now() / 1000 + 5,
+        iat: Date.now() / 1000 - 3500,
+        auth_time: Date.now() / 1000 - 3700,
+        nonce: "nonce",
+      },
+      RSA.importKey(testJwks.keys[0]).pem(),
+    );
+    const token = new IdToken(jwt);
+    await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+  }, Error);
+});
+
+Deno.test("RS256 valid", async () => {
+  discovery.issuer = "aaa";
+  config.clientId = "xxx";
+  config.idTokenSignedResponseAlg = "RS256";
+  testJwks;
+
+  const jwt = await create(
+    {
+      alg: "RS256",
+      typ: "JWT",
+      kid: testJwks.keys[0].kid,
+    },
+    {
+      iss: "aaa",
+      aud: ["xxx", "yyy"],
+      azp: "xxx",
+      exp: Date.now() / 1000 + 5,
+      iat: Date.now() / 1000 - 3500,
+      auth_time: Date.now() / 1000 - 3500,
+      nonce: "nonce",
+    },
+    RSA.importKey(testJwks.keys[0]).pem(),
+  );
+  const token = new IdToken(jwt);
+  await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+});
+
+Deno.test("RS512 valid", async () => {
+  discovery.issuer = "aaa";
+  config.clientId = "xxx";
+  config.idTokenSignedResponseAlg = "RS512";
+  testJwks;
+
+  const jwt = await create(
+    {
+      alg: "RS512",
+      typ: "JWT",
+      kid: testJwks.keys[2].kid,
+    },
+    {
+      iss: "aaa",
+      aud: ["xxx", "yyy"],
+      azp: "xxx",
+      exp: Date.now() / 1000 + 5,
+      iat: Date.now() / 1000 - 3500,
+      auth_time: Date.now() / 1000 - 3500,
+      nonce: "nonce",
+    },
+    RSA.importKey(testJwks.keys[2]).pem(),
+  );
+  const token = new IdToken(jwt);
+  await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+});
+
+Deno.test("PS256 valid", async () => {
+  discovery.issuer = "aaa";
+  config.clientId = "xxx";
+  config.idTokenSignedResponseAlg = "PS256";
+  testJwks;
+
+  const jwt = await create(
+    {
+      alg: "PS256",
+      typ: "JWT",
+      kid: testJwks.keys[3].kid,
+    },
+    {
+      iss: "aaa",
+      aud: ["xxx", "yyy"],
+      azp: "xxx",
+      exp: Date.now() / 1000 + 5,
+      iat: Date.now() / 1000 - 3500,
+      auth_time: Date.now() / 1000 - 3500,
+      nonce: "nonce",
+    },
+    RSA.importKey(testJwks.keys[3]).pem(),
+  );
+  const token = new IdToken(jwt);
+  await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+});
+Deno.test("PS512 valid", async () => {
+  discovery.issuer = "aaa";
+  config.clientId = "xxx";
+  config.idTokenSignedResponseAlg = "PS512";
+  testJwks;
+
+  const jwt = await create(
+    {
+      alg: "PS512",
+      typ: "JWT",
+      kid: testJwks.keys[4].kid,
+    },
+    {
+      iss: "aaa",
+      aud: ["xxx", "yyy"],
+      azp: "xxx",
+      exp: Date.now() / 1000 + 5,
+      iat: Date.now() / 1000 - 3500,
+      auth_time: Date.now() / 1000 - 3500,
+      nonce: "nonce",
+    },
+    RSA.importKey(testJwks.keys[4]).pem(),
+  );
+  const token = new IdToken(jwt);
+  await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+});
+
+Deno.test("HS256 valid", async () => {
+  discovery.issuer = "aaa";
+  config.clientId = "xxx";
+  config.clientSecret = "secret";
+  config.idTokenSignedResponseAlg = "HS256";
+  testJwks;
+
+  const jwt = await create(
+    {
+      alg: "HS256",
+      typ: "JWT",
+    },
+    {
+      iss: "aaa",
+      aud: ["xxx", "yyy"],
+      azp: "xxx",
+      exp: Date.now() / 1000 + 5,
+      iat: Date.now() / 1000 - 3500,
+      auth_time: Date.now() / 1000 - 3500,
+      nonce: "nonce",
+    },
+    config.clientSecret,
+  );
+  const token = new IdToken(jwt);
+  await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+});
+
+Deno.test("HS512 valid", async () => {
+  discovery.issuer = "aaa";
+  config.clientId = "xxx";
+  config.clientSecret = "secret";
+  config.idTokenSignedResponseAlg = "HS512";
+  testJwks;
+
+  const jwt = await create(
+    {
+      alg: "HS512",
+      typ: "JWT",
+    },
+    {
+      iss: "aaa",
+      aud: ["xxx", "yyy"],
+      azp: "xxx",
+      exp: Date.now() / 1000 + 5,
+      iat: Date.now() / 1000 - 3500,
+      auth_time: Date.now() / 1000 - 3500,
+      nonce: "nonce",
+    },
+    config.clientSecret,
+  );
+  console.log(jwt);
+  const token = new IdToken(jwt);
+  await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
+});
+
 class ValueBasedJWKsProvider implements JWKsProvider {
   value: JWKs;
   constructor(jwks: any) {
@@ -137,7 +423,7 @@ class ValueBasedJWKsProvider implements JWKsProvider {
 }
 
 class NullJWKsProvider implements JWKsProvider {
-  findJwk(kid: string): Promise<string> {
+  findJwk(_kid: string): Promise<string> {
     throw new Error("Method not implemented.");
   }
 }
@@ -206,6 +492,48 @@ const testJwks = {
         "wQJeSxHPb9LwPx-swAhjxO-1Wb8YlS3__NqPKEBK6__Eh_wgnSIVd4rsBTy7OZIsBuOLmzvwhBAqsBUyVjJWBpL1EJrfFDjrOBvZSKyCfAb9IAUJifsYO9H-PE_dlQHac-Lig7X8xJDxbqEiaXOvvmwyEmGODh-zKVtsIhdKvG0",
       "n":
         "1aG0ukTOd5WZEWCkH3TJUnopauRjEgms4NYG7tr6PzF74aFk-2tt7IzB9qVSXQ0XXuV5MQ2q0psrlm-dDBqtlybG2hra1qYsWkf49Y4wjUqLkY3pmp2BN_6mLY62MH6vsFX_Dxr8a9zgRrzDNgVQoje1qxPcH8Bkw3QEKVzwX1aPXyh_a-zNblbOc5zPasGiKc6orCPT8W0VRiawBHD2BVPGHsVDAtJn9t0807cYb84XD_phOu4e7XQTTkBUMJAXfwmW9w3Wwf_iwZPtYA2DZaVg58GOWz0TmW8lI6eFS_qAWdRIicUniDUJdyHtRhl2Aq4gOkFkk_HHogpTkJnunw",
+    },
+    {
+      "kid": "PS256-1",
+      "p":
+        "29WhNmzUenAKE_K_gBYBVcIBYQq-Kas7abSwqAidaw6e5UFlJatl2-SEdmRZb_Fw-_kKJEd8pXahYelejKl7eRrLi7E9hbpCheNFa9cQ76mfx4RR85gf2KAqurE0X7rdavorgX1bob8-7DQyiHemCAQrcrR-IxvUbERPZO-jdsE",
+      "kty": "RSA",
+      "q":
+        "tOKULS8YF2MmMTPdK_2apzbqOA-YZQU1HXV4UDybmjGkTgFl0HmLP5wtqhdfJlg99HGefZKtP5oYD6idhWc0vyj_z9juOTrNE2aK4L4ECFXegIUMVjXgyRJBSjfCSBp1qWvR7IfS73xNZ6x-JlcGKu5D2yS6hLwcad5-xZXCXH0",
+      "d":
+        "ccQmIClszCEJ87IGNLUawV8-3JzF-k-WcI4bPLcWjV1AQvyRRHbNrGvm1lpVCokGmcxLdy50xGFdU4UiqzPf_rBsBIQvMVaFX-uYVUwn--TCayH5aCsnmcR8Imie1wxQ7RtxqWzl0qTn0qvWbl9STL716f75MdY-AIw8KyvLiNQWp9v7YDHehMK9Ol60fkGzmrUjn_iwoSMji8WUd5ZL8Wi_DiG7zjo68x72r6hUWR-qzu9Bex9I6yWW-IK7c1N_49nvILRJ7cRoDc8gEMAGUJqGvDAp_NsIyMdHxXkwbyLd9cFFK35grof00cZVLTGzjjGD_sSp81_QYbyWTGiAAQ",
+      "e": "AQAB",
+      "use": "sig",
+      "qi":
+        "QIVNkozqytQLSK0hWGpfV7jc4EUWvK4Akro2D9IDpJn9k3tN-m3DaJDCHF5xyoMyXNVwfHdy5Uy34wmwCgICEWhs7s7pgWbuP-kY6MTX4mNf-HVaJHIUSGs-ziWO4l0U4BD0uT4su8-f3-9IksGyo8_i9aorKshgnnwkFYswypk",
+      "dp":
+        "gpCjKzwABqg8lBR9AIoRSOns_8Htp7n3k5Spx2M2e7s3TFpGxNTDrpJOyjJXnFD-FemXyGxc77lBqHF-onSWzRrJAbLHI4G4uOR--snFWVKZf1prgg47--FE_5T30lOd5kenR0U5AxwfNxLZYIwPpHs1gu8Ia7m_tH3t2bkqkQE",
+      "alg": "PS256",
+      "dq":
+        "XHS7vGSn8bxSFzAlSojz9ahSC5mdEXWZ8pbKimiQOD5LdzurqOWXUUoo5RnRHq5X7IvusMy6FRpUVhyfd0KLaXIxXzHIgiQWEmaFcd5t_Ty24AYhiic74EqeaKsbePNdVN2xjS7XmGV2wxkd2cb9dhAXSvn5BEOKWmrJbYDguZk",
+      "n":
+        "m1THMOTDL9xHG6Bk5l__RDwTbxSqG2vzXxXogXaLoQtWMBxwTd32oWqZRUwB5z42zI83p-dRKsjiPqXV7rZU65uI0M_Oc2axGdx1w8dS_KeV7hp6QF2cA_1i2k7ayvtvPVXWuYHJub4X2TFfB8vHkt2KHfpikHdhZsvCLD7BebB-8ti7_ngrCJ0qguvFJf0xWQ1hlAD4o-poseOCfst4qayW4bAMljYbD9pJLg_9YNSBu1o2judbOOiPFeBbvXuWFdoi2YySFTkEOQqSCwNXqPhDCak-cIEAx1Q20A0hOMFmcyCPXknwXN_NMDHqIf6ij_y2jdU0FsxVdijrFMBYPQ",
+    },
+    {
+      "kid": "PS512-1",
+      "p":
+        "-8pvtCMfBsJmFOlVj-0vQ0n0ALL7fC8DTPmet2TSxheaiXkQMnbgnIorJ2_VQ4TmPvYRqk1WX_UTrEHp4h9HRVPWyGx4xehWDSTyeumQBPTRrcl5cKfHdSbaXd41hczkH4eCEEMaZ_QErHSnouaBXLBAQZmb9xo1Dp0Qs9R89GE",
+      "kty": "RSA",
+      "q":
+        "tbboQb--TNk93KpWTO_smM8TRnQ-bKwUBjQ-F5BCewFHnoLiVHdu7EratGydIefjKl_irMxzlQemVCzqPcG0S6rG_2TzUtFeISJm0NqptavEx_QMaf-Ydoc77OnfIQTnUmBcIDZD1D-MyGLGquKJRKUQIAMlAV5Y4LSosrXtfJU",
+      "d":
+        "qSsL5nNs0Zp5Trv9n-d1PhY7q0gcasOVXc3ls1sp4dlosDndjaG_8kRaSsV2wHlux91eD08RmR0kWA6filb-gyzATECnMKw-HvQTomDJrINPh2NFg1CwZ0R6-TOOmBPy3ls_oqQYN-Re9MaNl53GFZCO_Gh04yMX0BoW9InJCGLS9RjyW33Kck3cjnpqZ1liNEoAzFZYAWHnV6y6ZoMzPnuV5EvK9TjjEfjF-RW2F7ovp1EESdLkkWyXwGh4zSJ6n9PUwFlrA6PqKN52uouvP8lYz5VMj82o9I-WIJpzKQznCpd48nLslLc6Dj4CfkLUXtF74jGGzwkNkj1tQURYAQ",
+      "e": "AQAB",
+      "use": "sig",
+      "qi":
+        "6dusQJULNj-NVyuRJ3GO2aJU6XpQEZ_O694bkroYvLfYH0Mz9tVg6GdtSx14DlMw6rxJbwscGzfC4vxptVdop19j-zZhh4f_XXBLgxgEXG3iUCElyXZFg_qzSfE0cfJ9Yj2Qc8H-OQE88ICbIkezl6ciYEaWq4H5EQua6VhDR4o",
+      "dp":
+        "2M1QLX1oQ7uzhiH7qHgEEB5nWQrD_APHBcqR3TuVOTgtul1hkvJFKMTXr5ddvEt8rY3XXBpHW0x86f-_URK5nXo5IE42F8KcBalgmHDvrzTWLpuiU1xEJB2WPOkOkO0BKBzX4wTEgenc9Fll1qA_lv2z9kg7wSLxuGmJbi5ygUE",
+      "alg": "PS512",
+      "dq":
+        "oR8jZVkc5YsinQy0JNgAE6ZY0vmzeCxEPRQJkl8pc2O5G0W2ZWrZAc-FiMFdunigJiyLEujd-2CjDLQeps-gjA9LD511WxOlwP995uZb4GgDvcAZWct2ZnKWogTlAaQVcCdcyHsVPZdzvyJGQbNIP4OUfq4LG-GKMQQ_KObDQtk",
+      "n":
+        "sroHVeceuZNb4ucGhSNp3qLOJzzYhpHthGeM2RyUbJFPeXDFVHM2jsaKEOcc4TsHM-JPjY6yDURUvQ6wqxygsasZZJF6sKVE6nuviRjxdlBoouicyI9eD2e-OV_Xoyv0lhRUPwIoZOFj4DIxYhojeNz05PVO9EeOX_M4HsXzAEDuawIm1UNNVeFpzZvaoD6QrnCNK_GfysGnRoI5Jc23sd8BOUvt4GTlhIO-4aU8ebrZZUa6Y6P7m6qniygWU9stbiKnFY7gIAvtF-iUkbjgxjHMioohU9KFAwmXpEtoCfyjU9JRh77mU86HjPtZD6ZoKF8Vj3iShbGkr3eABeY4dQ",
     },
   ],
 };
