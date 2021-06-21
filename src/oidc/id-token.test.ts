@@ -2,7 +2,8 @@ import {
   assertThrows,
   assertThrowsAsync,
 } from "https://deno.land/std@0.99.0/testing/asserts.ts";
-import { IdToken, JWKs, JWKsProvider } from "./id-token.ts";
+import { JWKs, JWKsProvider } from "./jwks-provider.ts";
+import { IdToken } from "./id-token.ts";
 import { discovery } from "./discovery.ts";
 import { config } from "../config.ts";
 import { create } from "https://deno.land/x/djwt@v2.2/mod.ts";
@@ -108,7 +109,6 @@ Deno.test("RS256 signature validation failed", async () => {
     discovery.issuer = "aaa";
     config.clientId = "xxx";
     config.idTokenSignedResponseAlg = "RS256";
-    testJwks;
 
     const jwt = await create(
       {
@@ -130,7 +130,6 @@ Deno.test("HS256 signature validation failed", async () => {
     config.clientId = "xxx";
     config.clientSecret = "secret";
     config.idTokenSignedResponseAlg = "HS256";
-    testJwks;
 
     const jwt = await create(
       {
@@ -150,7 +149,6 @@ Deno.test("expired", async () => {
     discovery.issuer = "aaa";
     config.clientId = "xxx";
     config.idTokenSignedResponseAlg = "RS256";
-    testJwks;
 
     const jwt = await create(
       {
@@ -171,7 +169,6 @@ Deno.test("too old iat", async () => {
     discovery.issuer = "aaa";
     config.clientId = "xxx";
     config.idTokenSignedResponseAlg = "RS256";
-    testJwks;
 
     const jwt = await create(
       {
@@ -198,7 +195,6 @@ Deno.test("nonce unmatched", async () => {
     discovery.issuer = "aaa";
     config.clientId = "xxx";
     config.idTokenSignedResponseAlg = "RS256";
-    testJwks;
 
     const jwt = await create(
       {
@@ -226,7 +222,6 @@ Deno.test("too old auth_time", async () => {
     discovery.issuer = "aaa";
     config.clientId = "xxx";
     config.idTokenSignedResponseAlg = "RS256";
-    testJwks;
 
     const jwt = await create(
       {
@@ -254,7 +249,6 @@ Deno.test("RS256 valid", async () => {
   discovery.issuer = "aaa";
   config.clientId = "xxx";
   config.idTokenSignedResponseAlg = "RS256";
-  testJwks;
 
   const jwt = await create(
     {
@@ -281,7 +275,6 @@ Deno.test("RS512 valid", async () => {
   discovery.issuer = "aaa";
   config.clientId = "xxx";
   config.idTokenSignedResponseAlg = "RS512";
-  testJwks;
 
   const jwt = await create(
     {
@@ -308,7 +301,6 @@ Deno.test("PS256 valid", async () => {
   discovery.issuer = "aaa";
   config.clientId = "xxx";
   config.idTokenSignedResponseAlg = "PS256";
-  testJwks;
 
   const jwt = await create(
     {
@@ -334,7 +326,6 @@ Deno.test("PS512 valid", async () => {
   discovery.issuer = "aaa";
   config.clientId = "xxx";
   config.idTokenSignedResponseAlg = "PS512";
-  testJwks;
 
   const jwt = await create(
     {
@@ -362,7 +353,6 @@ Deno.test("HS256 valid", async () => {
   config.clientId = "xxx";
   config.clientSecret = "secret";
   config.idTokenSignedResponseAlg = "HS256";
-  testJwks;
 
   const jwt = await create(
     {
@@ -389,7 +379,6 @@ Deno.test("HS512 valid", async () => {
   config.clientId = "xxx";
   config.clientSecret = "secret";
   config.idTokenSignedResponseAlg = "HS512";
-  testJwks;
 
   const jwt = await create(
     {
@@ -407,7 +396,6 @@ Deno.test("HS512 valid", async () => {
     },
     config.clientSecret,
   );
-  console.log(jwt);
   const token = new IdToken(jwt);
   await token.validate("nonce", new ValueBasedJWKsProvider(testJwks));
 });
