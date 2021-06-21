@@ -109,25 +109,25 @@ export class IdToken {
     clientSecret: string,
     jwt: string,
   ) {
-    if (header.alg !== idTokenSignedResponseAlg) {
-      console.log("alg must be " + idTokenSignedResponseAlg);
-      throw new Error("alg must be " + idTokenSignedResponseAlg);
-    }
-
-    try {
-      if (["RS256", "RS512", "PS256", "PS512"].includes(header.alg)) {
-        const jwk = await jwksProvider.findJwk(Object(header).kid);
-        await verify(jwt, RSA.importKey(jwk).pem(), header.alg);
-      } else if (["HS256", "HS512"].includes(header.alg)) {
-        await verify(jwt, clientSecret, header.alg);
-      } else {
-        throw new Error(`${header.alg} is not supported.`);
-      }
-    } catch (err) {
-      console.log(err.message);
-      throw err;
-    }
+  if (header.alg !== idTokenSignedResponseAlg) {
+    console.log("alg must be " + idTokenSignedResponseAlg);
+    throw new Error("alg must be " + idTokenSignedResponseAlg);
   }
+
+  try {
+    if (["RS256", "RS512", "PS256", "PS512"].includes(header.alg)) {
+      const jwk = await jwksProvider.findJwk(Object(header).kid);
+      await verify(jwt, RSA.importKey(jwk).pem(), header.alg);
+    } else if (["HS256", "HS512"].includes(header.alg)) {
+      await verify(jwt, clientSecret, header.alg);
+    } else {
+      throw new Error(`${header.alg} is not supported.`);
+    }
+  } catch (err) {
+    console.log(err.message);
+    throw err;
+  }
+}
 
   private validateIssuer(
     payloadIssuer: string | undefined,

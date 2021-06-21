@@ -1,4 +1,4 @@
-# oidcrpsample
+# deno-oidc-rp 
 
 ## Run with Keycloak
 
